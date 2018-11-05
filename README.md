@@ -1,6 +1,49 @@
 # Bloodhound-Cypher
 BH Cypher Queries picked up from random places
 
+## Top Ten Users with Most Local Admin Rights
+
+```
+MATCH (n:User),(m:Computer), (n)-[r:AdminTo]->(m) 
+WHERE NOT n.name STARTS WITH 'ANONYMOUS LOGON' 
+AND NOT n.name='' 
+WITH n, count(r) as rel_count order by rel_count desc 
+LIMIT 10 
+MATCH p=(m)<-[r:AdminTo]-(n) 
+RETURN p
+```
+
+## Top Ten Computers with Most Sessions
+
+```
+MATCH (n:User),(m:Computer), (n)<-[r:HasSession]-(m) 
+WHERE NOT n.name STARTS WITH 'ANONYMOUS LOGON' 
+AND NOT n.name='' WITH m, count(r) as rel_count order by rel_count desc 
+LIMIT 10 
+MATCH p=(m)-[r:HasSession]->(n) 
+RETURN n,r,m
+```
+
+## Top Ten Users with Most Sessions
+
+```
+MATCH (n:User),(m:Computer), (n)<-[r:HasSession]-(m) 
+WHERE NOT n.name STARTS WITH 'ANONYMOUS LOGON' AND NOT n.name='' WITH n, count(r) as rel_count order by rel_count desc 
+LIMIT 10 
+MATCH p=(m)-[r:HasSession]->(n) 
+RETURN p
+```
+
+## Top Ten Computers with Most Admins
+
+```
+MATCH (n:User),(m:Computer), (n)-[r:AdminTo]->(m) 
+WHERE NOT n.name STARTS WITH 'ANONYMOUS LOGON' 
+AND NOT n.name='' WITH m, count(r) as rel_count order by rel_count desc 
+LIMIT 10 
+MATCH p=(m)<-[r:AdminTo]-(n) 
+RETURN p
+```
 
 ## Return a list of users who have admin rights on at least one system either explicitly or through group membership
 
@@ -62,7 +105,7 @@ RETURN u.name,expAdmin,unrolledAdmin,expAdmin + unrolledAdmin as totalAdmin
 ORDER BY totalAdmin ASC
 ```
 
-## return cross domain 'HasSession' relationships
+## Return cross domain 'HasSession' relationships
 
 ```
 MATCH p=((S:Computer)-[r:HasSession*1]->(T:User)) 
@@ -76,6 +119,12 @@ RETURN p
 MATCH p=(m:Group)-[r:Owns|:WriteDacl|:GenericAll|:WriteOwner|:ExecuteDCOM|:GenericWrite|:AllowedToDelegate|:ForceChangePassword]->(n:Computer) 
 WHERE m.name STARTS WITH ‘DOMAIN USERS’ 
 RETURN p
+```
+
+## List all Kerberoastable Accounts
+
+```
+MATCH (n:User)WHERE n.hasspn=true RETURN n
 ```
 
 ## Show Kerberoastable high value targets
@@ -97,11 +146,33 @@ RETURN p
 ## Find Workstations where DOMAIN USERS can RDP To
 
 ```
-match p=(g:Group)-[:CanRDP]->(c:Computer) where g.name STARTS WITH ‘DOMAIN USERS’ AND NOT c.operatingsystem CONTAINS ‘Server’ return p
+MATCH p=(g:Group)-[:CanRDP]->(c:Computer) 
+WHERE g.name STARTS WITH ‘DOMAIN USERS’ 
+AND NOT c.operatingsystem CONTAINS ‘Server’ 
+RETURN p
 ```
 
 ## Find Servers where DOMAIN USERS can RDP To
 
 ```
-match p=(g:Group)-[:CanRDP]->(c:Computer) where g.name STARTS WITH ‘DOMAIN USERS’ AND c.operatingsystem CONTAINS ‘Server’ return p
+MATCH p=(g:Group)-[:CanRDP]->(c:Computer) 
+WHERE g.name STARTS WITH ‘DOMAIN USERS’ AND c.operatingsystem CONTAINS ‘Server’ 
+RETURN p
+```
+
+## ALL Path from DOMAIN USERS to High Value Targets
+
+```
+MATCH (g:Group) 
+WHERE g.name STARTS WITH 'DOMAIN USERS'  
+MATCH (n {highvalue:true}),p=shortestPath((g)-[r*1..]->(n)) 
+RETURN p
+```
+
+## Shortest Path from DOMAIN USERS to High Value Targets
+
+```
+MATCH (g:Group),(n {highvalue:true}),p=shortestPath((g)-[r*1..]->(n)) 
+WHERE g.name STARTS WITH 'DOMAIN USERS' 
+RETURN p
 ```
