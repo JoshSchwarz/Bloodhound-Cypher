@@ -176,3 +176,10 @@ MATCH (g:Group),(n {highvalue:true}),p=shortestPath((g)-[r*1..]->(n))
 WHERE g.name STARTS WITH 'DOMAIN USERS' 
 RETURN p
 ```
+
+## Find specific OS
+
+```
+MATCH (n) WHERE n.operatingsystem =~ 'Windows XP.*' 
+RETURN n
+```
